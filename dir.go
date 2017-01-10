@@ -28,16 +28,20 @@ func (dw *DirWriter) Entry(e *DirEntry) error {
 	return err
 }
 
+// errors for LocalEntry
+var errMissingExtHost = errors.New("missing Server.ExtHost")
+var errMissingExtPort = errors.New("missing Server.ExtPort")
+
 // LocalEntry works like Entry but uses ExtHost and ExtPort from the server
 // instead of the ones supplied in e.
 func (dw *DirWriter) LocalEntry(e *DirEntry) error {
 	e.Host = dw.w.srv.ExtHost
-	e.Port = dw.w.srv.ExtPort
 	if e.Host == "" {
-		return errors.New("DirWriter.LocalEntry: missing ExtHost")
+		return errMissingExtHost
 	}
+	e.Port = dw.w.srv.ExtPort
 	if e.Port == "" {
-		return errors.New("DirWriter.LocalEntry: missing ExtPort")
+		return errMissingExtPort
 	}
 	return dw.Entry(e)
 }

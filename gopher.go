@@ -10,10 +10,6 @@ import (
 	"time"
 )
 
-// DefaultMaxReqBytes is the maximum permitted size of a gopher request.
-// This can be overridden by setting Server.MaxReqBytes
-const DefaultMaxReqBytes = 1 << 20 // 1 MB
-
 // A Server defines parameters for running a gopher server.
 type Server struct {
 	Addr         string        // TCP address to listen on, ":7070" if empty
@@ -39,8 +35,8 @@ func (w *Writer) DirWriter() *DirWriter {
 
 // A Request represents a request received by a server.
 type Request struct {
-	RemoteAddr string
-	Content    []byte
+	RemoteAddr string // Network address that sent the request
+	Content    []byte // Request contents
 }
 
 // A Handler responds to a request.
@@ -56,12 +52,17 @@ func (srv *Server) logf(format string, args ...interface{}) {
 	}
 }
 
-var errSizeLimit = errors.New("MaxReqBytes exceeded")
+// DefaultMaxReqBytes is the maximum permitted size of a request. This
+// can be overridden by setting Server.MaxReqBytes.
+const DefaultMaxReqBytes = 1 << 20 // 1 MB
 
+// like io.LimitedReader but returns an error
 type connReader struct {
 	r io.Reader
 	n int
 }
+
+var errSizeLimit = errors.New("MaxReqBytes exceeded")
 
 // TODO: verify that this is correct
 func (l *connReader) Read(p []byte) (n int, err error) {
