@@ -14,8 +14,8 @@ type Server struct {
 	ExtHost      string        // External address for this server (required for DirWriter.LocalEntry)
 	ExtPort      string        // External port for this server (required for DirWriter.LocalEntry)
 	Handler      Handler       // handler to invoke
-	ReadTimeout  time.Duration // maximum duration before timing out read of the request<Paste>
-	WriteTimeout time.Duration // maximum duration before timing out write of the response<Paste>
+	ReadTimeout  time.Duration // maximum duration before timing out read of the request
+	WriteTimeout time.Duration // maximum duration before timing out write of the response
 	MaxReqBytes  int           // maximum length for a request
 	ErrorLog     *log.Logger   // optional logger for errors
 }
@@ -52,6 +52,13 @@ func (srv *Server) logf(format string, args ...interface{}) {
 
 func (srv *Server) serve(c net.Conn) {
 	defer c.Close()
+	now := time.Now()
+	if d := srv.ReadTimeout; d != 0 {
+		c.SetReadDeadline(now.Add(srv.ReadTimeout))
+	}
+	if d := srv.WriteTimeout; d != 0 {
+		c.SetWriteDeadline(now.Add(srv.WriteTimeout))
+	}
 	req := &Request{}
 	req.RemoteAddr = c.RemoteAddr().String()
 	r := bufio.NewReader(c)
