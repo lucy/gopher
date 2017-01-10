@@ -2,6 +2,8 @@ package gopher
 
 import (
 	"bufio"
+	"errors"
+	"io"
 	"log"
 	"net"
 	"net/textproto"
@@ -50,6 +52,26 @@ func (srv *Server) logf(format string, args ...interface{}) {
 	}
 }
 
+var errSizeLimit = errors.New("MaxReqBytes exceeded")
+
+type connReader struct {
+	r io.Reader
+	n int
+}
+
+// TODO: verify that this is correct
+func (l *connReader) Read(p []byte) (n int, err error) {
+	if l.n <= 0 {
+		return 0, errSizeLimit
+	}
+	if len(p) > l.n {
+		p = p[0:l.n]
+	}
+	n, err = l.r.Read(p)
+	l.n -= n
+	return
+}
+
 func (srv *Server) serve(c net.Conn) {
 	defer c.Close()
 	now := time.Now()
@@ -61,7 +83,7 @@ func (srv *Server) serve(c net.Conn) {
 	}
 	req := &Request{}
 	req.RemoteAddr = c.RemoteAddr().String()
-	r := bufio.NewReader(c)
+	r := bufio.NewReader(&connReader{c, srv.MaxReqBytes})
 	line, err := r.ReadBytes('\n')
 	// trim \n, \r\n
 	if l := len(line); l >= 1 && line[l-1] == '\n' {
