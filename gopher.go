@@ -10,6 +10,10 @@ import (
 	"time"
 )
 
+// DefaultMaxReqBytes is the maximum permitted size of a gopher request.
+// This can be overridden by setting Server.MaxReqBytes
+const DefaultMaxReqBytes = 1 << 20 // 1 MB
+
 // A Server defines parameters for running a gopher server.
 type Server struct {
 	Addr         string        // TCP address to listen on, ":7070" if empty
@@ -106,6 +110,9 @@ func (srv *Server) serve(c net.Conn) {
 // srv.Handler to reply to them.
 func (srv *Server) Serve(l net.Listener) error {
 	defer l.Close()
+	if srv.MaxReqBytes == 0 {
+		srv.MaxReqBytes = DefaultMaxReqBytes
+	}
 	for {
 		c, err := l.Accept()
 		if err != nil {
