@@ -24,13 +24,13 @@ type Server struct {
 
 // A Writer is used for writing responses to requests.
 type Writer struct {
-	Conn net.Conn
-	srv  *Server
+	io.WriteCloser
+	srv *Server
 }
 
 // DirWriter returns a DirWriter for a Writer.
 func (w *Writer) DirWriter() *DirWriter {
-	return &DirWriter{w, textproto.NewWriter(bufio.NewWriter(w.Conn)).DotWriter()}
+	return &DirWriter{w, textproto.NewWriter(bufio.NewWriter(w)).DotWriter()}
 }
 
 // A Request represents a request received by a server.

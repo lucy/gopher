@@ -55,7 +55,7 @@ func (fs *fileHandler) serve(w *Writer, req *Request) error {
 		}
 		return w.Close()
 	}
-	_, err = io.Copy(w.Conn, f)
+	_, err = io.Copy(w, f)
 	return err
 }
 
