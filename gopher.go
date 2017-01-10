@@ -8,31 +8,36 @@ import (
 	"time"
 )
 
+// A Server defines parameters for running a gopher server.
 type Server struct {
-	Addr         string
-	ExtHost      string
-	ExtPort      string
-	Handler      Handler
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
-	MaxReqBytes  int
-	ErrorLog     *log.Logger
+	Addr         string        // TCP address to listen on, ":7070" if empty
+	ExtHost      string        // External address for this server (required for DirWriter.LocalEntry)
+	ExtPort      string        // External port for this server (required for DirWriter.LocalEntry)
+	Handler      Handler       // handler to invoke
+	ReadTimeout  time.Duration // maximum duration before timing out read of the request<Paste>
+	WriteTimeout time.Duration // maximum duration before timing out write of the response<Paste>
+	MaxReqBytes  int           // maximum length for a request
+	ErrorLog     *log.Logger   // optional logger for errors
 }
 
-type Request struct {
-	RemoteAddr string
-	Content    []byte
-}
-
+// A Writer is used for writing responses to requests.
 type Writer struct {
 	Conn net.Conn
 	srv  *Server
 }
 
+// DirWriter returns a DirWriter for a Writer.
 func (w *Writer) DirWriter() *DirWriter {
 	return &DirWriter{w, textproto.NewWriter(bufio.NewWriter(w.Conn)).DotWriter()}
 }
 
+// A Request represents a request received by a server.
+type Request struct {
+	RemoteAddr string
+	Content    []byte
+}
+
+// A Handler responds to a request.
 type Handler interface {
 	ServeGopher(w *Writer, request *Request)
 }
@@ -67,6 +72,9 @@ func (srv *Server) serve(c net.Conn) {
 	srv.Handler.ServeGopher(w, req)
 }
 
+// Serve accepts incoming connections on the listener l, creating a new service
+// goroutine for each. The service goroutines read a request and then call
+// srv.Handler to reply to them.
 func (srv *Server) Serve(l net.Listener) error {
 	defer l.Close()
 	for {
@@ -78,6 +86,8 @@ func (srv *Server) Serve(l net.Listener) error {
 	}
 }
 
+// ListenAndServe listens on the TCP network address srv.Addr and calls Serve
+// to handle requests.
 func (srv *Server) ListenAndServe() error {
 	addr := srv.Addr
 	if addr == "" {

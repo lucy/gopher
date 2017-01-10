@@ -2,7 +2,6 @@ package gopher
 
 import (
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -10,24 +9,26 @@ import (
 	"strings"
 )
 
-type fileServer struct {
-	http.FileSystem
+type fileHandler struct {
+	root http.FileSystem
 }
 
-func NewFileServer(path string) Handler {
-	return &fileServer{http.Dir("./gopher")}
+// FileServer returns a handler that servers the contents of the file system
+// rooted at root.
+func FileServer(root http.FileSystem) Handler {
+	return &fileHandler{root}
 }
 
-func (fs *fileServer) ServeGopher(w *Writer, req *Request) {
+func (fs *fileHandler) ServeGopher(w *Writer, req *Request) {
 	err := fs.serve(w, req)
 	if err != nil {
-		log.Print(err)
+		w.srv.logf("FileServer.ServeGopher: %s", err)
 	}
 }
 
-func (fs *fileServer) serve(w *Writer, req *Request) error {
+func (fs *fileHandler) serve(w *Writer, req *Request) error {
 	p := path.Clean(string(req.Content))
-	f, err := fs.Open(p)
+	f, err := fs.root.Open(p)
 	if err != nil {
 		return err
 	}
