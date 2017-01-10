@@ -21,7 +21,7 @@ type DirEntry struct {
 	Port string
 }
 
-// Entry writes a direntry to the current connection.
+// Entry writes a DirEntry to the current connection.
 func (dw *DirWriter) Entry(e *DirEntry) error {
 	_, err := fmt.Fprintf(dw, "%c%s\t%s\t%s\t%s\n",
 		e.Type, e.Name, e.Path, e.Host, e.Port)
