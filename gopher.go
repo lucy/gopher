@@ -128,7 +128,7 @@ func (srv *Server) Serve(l net.Listener) error {
 func (srv *Server) ListenAndServe() error {
 	addr := srv.Addr
 	if addr == "" {
-		addr = "127.0.0.1:7070"
+		addr = ":7070"
 	}
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
