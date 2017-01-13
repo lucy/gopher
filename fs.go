@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"sort"
+	"strings"
 )
 
 type fileHandler struct {
@@ -18,16 +19,15 @@ func FileServer(root http.FileSystem) Handler {
 	return &fileHandler{root}
 }
 
-func (fs *fileHandler) ServeGopher(w *Writer, req *Request) {
-	err := fs.serve(w, req)
+func (f *fileHandler) ServeGopher(w *Writer, req *Request) {
+	err := serveFile(w, req, f.root, string(req.Content))
 	if err != nil {
 		w.srv.logf("FileServer.ServeGopher: %s", err)
 	}
 }
 
-func (fs *fileHandler) serve(w *Writer, req *Request) error {
-	p := path.Clean(string(req.Content))
-	f, err := fs.root.Open(p)
+func serveFile(w *Writer, req *Request, fs http.FileSystem, name string) error {
+	f, err := fs.Open(name)
 	if err != nil {
 		return err
 	}
@@ -36,26 +36,37 @@ func (fs *fileHandler) serve(w *Writer, req *Request) error {
 		return err
 	}
 	if fi.IsDir() {
-		fis, err := f.Readdir(-1)
-		if err != nil {
-			return err
-		}
-		sort.Sort(byName(fis))
-		w := w.DirWriter()
-		e := DirEntry{}
-		for _, fi := range fis {
-			e.Type = itemType(fi)
-			e.Name = fi.Name()
-			e.Path = path.Join(p, fi.Name())
-			err := w.LocalEntry(&e)
-			if err != nil {
-				return err
-			}
-		}
-		return w.Close()
+		return dirList(w, req, f)
 	}
 	_, err = io.Copy(w, f)
 	return err
+}
+
+func dirList(w *Writer, req *Request, f http.File) error {
+	p := path.Clean(string(req.Content))
+	if !strings.HasPrefix(p, "/") {
+		p = "/" + p
+	}
+	fis, err := f.Readdir(-1)
+	if err != nil {
+		return err
+	}
+	sort.Sort(byName(fis))
+	dw := w.DirWriter()
+	e := DirEntry{}
+	for _, fi := range fis {
+		e.Type = itemType(fi)
+		e.Name = fi.Name()
+		if fi.IsDir() {
+			e.Name += "/"
+		}
+		e.Path = path.Join(p, fi.Name())
+		err := dw.LocalEntry(&e)
+		if err != nil {
+			return err
+		}
+	}
+	return dw.Close()
 }
 
 func itemType(fi os.FileInfo) byte {
