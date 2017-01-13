@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 	"sort"
-	"strings"
 )
 
 type fileHandler struct {
@@ -59,22 +58,18 @@ func (fs *fileHandler) serve(w *Writer, req *Request) error {
 	return err
 }
 
-// TODO: make this less ugly
 func itemType(fi os.FileInfo) byte {
 	if fi.IsDir() {
 		return '1'
 	}
-	n := fi.Name()
-	switch {
-	case strings.HasSuffix(n, ".html"):
+	switch path.Ext(fi.Name()) {
+	case ".html":
 		return 'h'
-	case strings.HasSuffix(n, ".txt"):
+	case ".txt":
 		return '0'
-	case strings.HasSuffix(n, ".gif"):
+	case ".gif":
 		return 'g'
-	case strings.HasSuffix(n, ".png"),
-		strings.HasSuffix(n, ".jpg"),
-		strings.HasSuffix(n, ".jpeg"):
+	case ".png", ".jpg", ".jpeg":
 		return 'I'
 	}
 	return '9'
